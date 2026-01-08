@@ -1,0 +1,12 @@
+// We need to implement a backend endpoint to fetch "My Groups" first.
+// Since backend is already "done", I will edit backend/src/controllers/groups.ts 
+// and backend/src/routes/groups.ts to add `GET /groups` (my groups).
+// I will do this in a subsequent step if needed. 
+// For now, I'll create the Dashboard UI assuming the endpoint exists or stubbing it.
+// Actually, I should fix the backend first.
+
+// Wait, I can't easily query "groups I am in" with the current schema efficiently 
+// without a join or specialized query on the JSONB column. 
+// Drizzle: `sql` operator can be used for JSONB containment.
+// `sql`${expenses.participants} @> ${userId}`` 
+// I will start by updating the backend controller effectively.
