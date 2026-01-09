@@ -19,9 +19,23 @@ const io = new Server(server, {
     }
 });
 
+const allowedOrigin = process.env.FRONTEND_URL || "*";
+
 app.use(cors({
-    origin: process.env.FRONTEND_URL || "*",
-    credentials: true
+    origin: allowedOrigin,
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+    optionsSuccessStatus: 200,
+}));
+
+// Explicitly handle preflight requests
+app.options('*', cors({
+    origin: allowedOrigin,
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+    optionsSuccessStatus: 200,
 }));
 app.use(express.json());
 app.set('io', io); // Share io instance
