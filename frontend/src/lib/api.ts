@@ -2,7 +2,7 @@ import axios from 'axios';
 
 // Create an Axios instance
 const api = axios.create({
-    baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:4000/api',
+    baseURL: process.env.NEXT_PUBLIC_API_URL || 'https://easyshare-09ya.onrender.com/api',
     headers: {
         'Content-Type': 'application/json',
     },

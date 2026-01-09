@@ -3,6 +3,7 @@ import { db } from '../db';
 import { expenses, users } from '../db/schema';
 import { eq, and, desc, sql, inArray, gte } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
+import { calculateSettlements, Expense } from '../utils/settleDebts';
 
 // Derive current group members from any expense/message participation
 async function getGroupMembers(groupId: string): Promise<string[]> {
@@ -23,49 +24,6 @@ async function getGroupMembers(groupId: string): Promise<string[]> {
     payerRows.rows.forEach((r: any) => r.user_id && ids.add(r.user_id as string));
 
     return Array.from(ids);
-}
-
-// Helper to simplify debts
-function simplifyDebts(transactions: { from: string, to: string, amount: number }[]) {
-    const balances: Record<string, number> = {};
-
-    transactions.forEach(t => {
-        balances[t.from] = (balances[t.from] || 0) - t.amount;
-        balances[t.to] = (balances[t.to] || 0) + t.amount;
-    });
-
-    const debtors: { id: string, amount: number }[] = [];
-    const creditors: { id: string, amount: number }[] = [];
-
-    Object.entries(balances).forEach(([id, amount]) => {
-        if (amount < -0.01) debtors.push({ id, amount });
-        if (amount > 0.01) creditors.push({ id, amount });
-    });
-
-    debtors.sort((a, b) => a.amount - b.amount);
-    creditors.sort((a, b) => b.amount - a.amount);
-
-    const settlements: { from: string, to: string, amount: number }[] = [];
-
-    let i = 0;
-    let j = 0;
-
-    while (i < debtors.length && j < creditors.length) {
-        const debtor = debtors[i];
-        const creditor = creditors[j];
-
-        const amount = Math.min(Math.abs(debtor.amount), creditor.amount);
-
-        settlements.push({ from: debtor.id, to: creditor.id, amount });
-
-        debtor.amount += amount;
-        creditor.amount -= amount;
-
-        if (Math.abs(debtor.amount) < 0.01) i++;
-        if (creditor.amount < 0.01) j++;
-    }
-
-    return settlements;
 }
 
 // Last settlement reset timestamp for a group
@@ -166,28 +124,20 @@ export const getSettlements = async (req: Request, res: Response) => {
         where: and(...conditions),
     });
 
-    const transactions: { from: string, to: string, amount: number }[] = [];
+    // Convert DB expenses to the Expense format for calculateSettlements
+    const expenseList: Expense[] = groupExpenses
+        .filter(exp => {
+            const amount = exp.amount ? parseFloat(exp.amount) : 0;
+            return amount > 0 && !Number.isNaN(amount) && exp.paidBy && exp.participants && (exp.participants as string[]).length > 0;
+        })
+        .map(exp => ({
+            paidBy: exp.paidBy!,
+            amount: parseFloat(exp.amount!),
+            participants: exp.participants as string[],
+        }));
 
-    groupExpenses.forEach(exp => {
-        const amount = exp.amount ? parseFloat(exp.amount) : 0;
-        const payer = exp.paidBy!;
-        const parts = exp.participants as string[];
-
-        if (!amount || Number.isNaN(amount)) return;
-        if (!payer || !parts || parts.length === 0) return;
-
-        // Split equally among ALL participants (including payer)
-        const sharePerPerson = amount / parts.length;
-        
-        // Each participant (except payer) owes the payer their share
-        parts.forEach((memberId: string) => {
-            if (memberId !== payer) {
-                transactions.push({ from: memberId, to: payer, amount: sharePerPerson });
-            }
-        });
-    });
-
-    const settlements = simplifyDebts(transactions);
+    // Use the new calculateSettlements function
+    const settlements = calculateSettlements(expenseList);
 
     // Attach user names for display
     const userIds = Array.from(new Set(settlements.flatMap(s => [s.from, s.to])));

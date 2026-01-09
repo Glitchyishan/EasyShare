@@ -7,6 +7,7 @@ import Card from "@/components/Card";
 import Button from "@/components/Button";
 import AddExpenseModal from "@/components/AddExpenseModal";
 import AddMemberModal from "@/components/AddMemberModal";
+import Navbar from "@/components/Navbar";
 import { useParams } from "next/navigation";
 import {
   MessageCircle,
@@ -112,26 +113,23 @@ export default function GroupPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
-      {/* Header */}
-      <header className="bg-white/80 backdrop-blur-md border-b border-gray-200 sticky top-0 z-10">
-        <div className="max-w-3xl mx-auto px-4 h-16 flex items-center justify-between">
-          <h1 className="text-xl font-bold">
-            Group <span className="text-gray-400">#{groupId.slice(0, 6)}</span>
-          </h1>
-          <div className="flex gap-2">
-            <Button
-              size="sm"
-              variant="secondary"
-              onClick={() => setShowAddMember(true)}
-            >
-              <UserPlus className="w-4 h-4 mr-1" /> Member
-            </Button>
-            <Button size="sm" onClick={() => setShowAddExpense(true)}>
-              <Plus className="w-4 h-4 mr-1" /> Expense
-            </Button>
-          </div>
+      <Navbar title={`Group #${groupId.slice(0, 6)}`} showBackButton />
+
+      {/* Action Buttons */}
+      <div className="max-w-3xl mx-auto px-4 pt-4">
+        <div className="flex justify-end gap-2 mb-4">
+          <Button
+            size="sm"
+            variant="secondary"
+            onClick={() => setShowAddMember(true)}
+          >
+            <UserPlus className="w-4 h-4 mr-1" /> Member
+          </Button>
+          <Button size="sm" onClick={() => setShowAddExpense(true)}>
+            <Plus className="w-4 h-4 mr-1" /> Expense
+          </Button>
         </div>
-      </header>
+      </div>
 
       {/* Tab Navigation */}
       <div className="max-w-3xl mx-auto px-4 pt-4">

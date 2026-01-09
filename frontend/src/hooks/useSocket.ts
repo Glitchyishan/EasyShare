@@ -10,7 +10,7 @@ export const useSocket = (groupId?: string) => {
         if (!token) return;
 
         // Connect to backend
-        socketRef.current = io(process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:4000', {
+        socketRef.current = io(process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'https://easyshare-09ya.onrender.com', {
             auth: { token },
             transports: ['websocket'], // Force websocket
         });
