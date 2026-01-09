@@ -11,32 +11,41 @@ dotenv.config();
 
 const app = express();
 const server = http.createServer(app);
+// Allow multiple origins: env FRONTEND_URLS (comma separated), FRONTEND_URL, plus sensible defaults
+const envOrigins = (process.env.FRONTEND_URLS || process.env.FRONTEND_URL || '')
+    .split(',')
+    .map(o => o.trim())
+    .filter(Boolean);
+
+const allowedOrigins = Array.from(new Set([
+    ...envOrigins,
+    'https://easy-share-green.vercel.app',
+    'http://localhost:3000',
+]));
+
+const corsOptions: cors.CorsOptions = {
+    origin: (origin, callback) => {
+        if (!origin) return callback(null, true); // Allow non-browser clients
+        if (allowedOrigins.includes(origin)) return callback(null, true);
+        return callback(new Error('Not allowed by CORS'));
+    },
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+    optionsSuccessStatus: 200,
+};
+
 const io = new Server(server, {
     cors: {
-        origin: process.env.FRONTEND_URL || "*",
-        methods: ["GET", "POST"],
-        credentials: true
+        ...corsOptions,
+        origin: corsOptions.origin,
     }
 });
 
-const allowedOrigin = process.env.FRONTEND_URL || "*";
-
-app.use(cors({
-    origin: allowedOrigin,
-    credentials: true,
-    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
-    optionsSuccessStatus: 200,
-}));
+app.use(cors(corsOptions));
 
 // Explicitly handle preflight requests
-app.options('*', cors({
-    origin: allowedOrigin,
-    credentials: true,
-    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
-    optionsSuccessStatus: 200,
-}));
+app.options('*', cors(corsOptions));
 app.use(express.json());
 app.set('io', io); // Share io instance
 
